@@ -16,3 +16,4 @@ brew "fastfetch"
 
 cask "ghostty"
 cask "font-jetbrains-mono-nerd-font"
+brew "vim"

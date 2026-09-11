@@ -33,6 +33,13 @@ link_file "$DOTFILES/zshrc" "$HOME/.zshrc"
 link_file "$DOTFILES/tmux.conf" "$HOME/.tmux.conf"
 link_file "$DOTFILES/starship.toml" "$HOME/.config/starship.toml"
 link_file "$DOTFILES/ghostty/config" "$HOME/.config/ghostty/config"
+link_file "$DOTFILES/vimrc" "$HOME/.vimrc"
+
+echo "Setting up vim-plug"
+curl -fLo ~/.vim/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+
+echo "Installing vim plugins"
+vim +PlugInstall +qall
 
 echo "Done. Backups if any are in $BACKUP"
 echo "Restart terminal to apply"
