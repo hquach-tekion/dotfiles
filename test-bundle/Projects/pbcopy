@@ -1,0 +1,12 @@
+   1 eval "$(starship init zsh)"
+   2 alias ls="eza --icons=auto"
+   3 alias cat="bat"
+   4 eval "$(zoxide init zsh)"
+   5 
+   6 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+   7 source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+   8 source $(brew --prefix)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+   9 eval "$(atuin init zsh)"
+  10 fastfetch
+  11 export PATH="/opt/homebrew/bin:$PATH"
+  12 export PATH="$HOME/.local/bin:$PATH"
