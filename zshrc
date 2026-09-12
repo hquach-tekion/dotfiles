@@ -35,3 +35,11 @@ dgx-info() {
 dgx-models() {
     curl -s "$DGX_ENDPOINT/models" -H "Authorization: Bearer $DGX_API_KEY" | nu --stdin -c "from json | get data | select id"
 }
+
+
+aider-dgx() {
+    OPENAI_API_BASE=$DGX_ENDPOINT OPENAI_API_KEY=$DGX_API_KEY aider --model openai/$DGX_MODEL --model-settings-file ~/.aider.model.settings.yml "$@"
+}
+
+
+export SSL_CERT_FILE=~/.netskope-combined-ca.pem
