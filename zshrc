@@ -320,3 +320,71 @@ except Exception:
         echo "Not committed. Message copied to clipboard instead."
     fi
 }
+
+why() {
+    local cmd="$*"
+    if [ -z "$cmd" ]; then
+        echo "Usage: why <command to run and explain if it fails>"
+        return 1
+    fi
+
+    local output
+    output=$(eval "$cmd" 2>&1)
+    local exit_code=$?
+
+    echo "$output"
+
+    if [ $exit_code -eq 0 ]; then
+        return 0
+    fi
+
+    echo ""
+    echo "Command failed with exit code $exit_code. Asking DGX for an explanation..."
+    echo ""
+
+    local payload
+    payload=$(python3 -c "
+import json, sys
+body = {
+    'model': '$DGX_MODEL',
+    'messages': [
+        {'role': 'system', 'content': 'You explain why a command failed in plain English, based on the command and its error output. Be concise, a few sentences max, and suggest a likely fix if one is obvious.'},
+        {'role': 'user', 'content': 'Command: ' + sys.argv[1] + chr(10) + chr(10) + 'Error output:' + chr(10) + sys.argv[2]}
+    ],
+    'chat_template_kwargs': {'enable_thinking': False}
+}
+print(json.dumps(body))
+" "$cmd" "$output")
+
+    local response
+    response=$(curl -s -m 30 "$DGX_ENDPOINT/chat/completions" \
+        -H "Authorization: Bearer $DGX_API_KEY" \
+        -H "Content-Type: application/json" \
+        -d "$payload")
+
+    if [ -z "$response" ]; then
+        echo "Error: no response from DGX endpoint."
+        return $exit_code
+    fi
+
+    local explanation
+    explanation=$(printf '%s' "$response" | python3 -c "
+import json, sys
+try:
+    data = json.load(sys.stdin)
+    print(data['choices'][0]['message']['content'].strip())
+except Exception:
+    print('PARSE_ERROR', file=sys.stderr)
+    sys.exit(1)
+" 2>/dev/null)
+
+    if [ $? -ne 0 ] || [ -z "$explanation" ]; then
+        echo "Error: could not parse a valid response from the model."
+        return $exit_code
+    fi
+
+    echo "Explanation:"
+    echo "$explanation"
+
+    return $exit_code
+}
