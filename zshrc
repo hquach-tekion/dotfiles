@@ -103,3 +103,83 @@ data = json.load(sys.stdin)
 print(data['choices'][0]['message']['content'].strip())
 "
 }
+
+fixen() {
+    local input
+
+    if [ -n "$1" ]; then
+        input="$*"
+    else
+        local clip
+        clip=$(pbpaste)
+        echo "Press Enter to use clipboard text, or type your own sentence and press Enter:"
+        if [ -n "$clip" ]; then
+            echo "Clipboard: $clip"
+        fi
+        read "typed?> "
+        if [ -n "$typed" ]; then
+            input="$typed"
+        else
+            input="$clip"
+        fi
+    fi
+
+    if [ -z "$input" ]; then
+        echo "No text provided."
+        return 1
+    fi
+
+    echo ""
+    echo "Fixing:"
+    echo "$input"
+    echo ""
+
+    local payload
+    payload=$(python3 -c "
+import json, sys
+body = {
+    'model': '$DGX_MODEL',
+    'messages': [
+        {'role': 'system', 'content': 'You are a helpful IT support person. Correct the grammar and rewrite the text in a concise, friendly, professional tone suitable for workplace communication. Respond with ONLY the corrected version, nothing else. No explanation, no notes, no quotation marks around it.'},
+        {'role': 'user', 'content': sys.argv[1]}
+    ],
+    'chat_template_kwargs': {'enable_thinking': False}
+}
+print(json.dumps(body))
+" "$input")
+
+    local response
+    response=$(curl -s -m 30 "$DGX_ENDPOINT/chat/completions" \
+        -H "Authorization: Bearer $DGX_API_KEY" \
+        -H "Content-Type: application/json" \
+        -d "$payload")
+
+    if [ -z "$response" ]; then
+        echo "Error: no response from DGX endpoint. Check that it is reachable and try again."
+        return 1
+    fi
+
+    local result
+    result=$(echo "$response" | python3 -c "
+import json, sys
+try:
+    data = json.load(sys.stdin)
+    print(data['choices'][0]['message']['content'].strip())
+except Exception as e:
+    print('PARSE_ERROR', file=sys.stderr)
+    sys.exit(1)
+" 2>/dev/null)
+
+    if [ $? -ne 0 ] || [ -z "$result" ]; then
+        echo "Error: could not parse a valid response from the model."
+        echo "Raw response was:"
+        echo "$response"
+        return 1
+    fi
+
+    echo "Fixed:"
+    echo "$result"
+    echo "$result" | pbcopy
+    echo ""
+    echo "(copied to clipboard, paste with Cmd+V)"
+}
