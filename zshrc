@@ -245,3 +245,78 @@ with open('$HOME/.fixen_history.log', 'a') as f:
     echo "$result" | pbcopy
     echo "(copied to clipboard, paste with Cmd+V)"
 }
+
+aicommit() {
+    if ! git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
+        echo "Not inside a git repository."
+        return 1
+    fi
+
+    local diff
+    diff=$(git diff --cached)
+
+    if [ -z "$diff" ]; then
+        echo "No staged changes. Stage files with 'git add' first."
+        return 1
+    fi
+
+    echo "Generating commit message from staged diff..."
+
+    local payload
+    payload=$(python3 -c "
+import json, sys
+body = {
+    'model': '$DGX_MODEL',
+    'messages': [
+        {'role': 'system', 'content': 'You write concise git commit messages. Given a diff, respond with ONLY a commit message: a short imperative summary line under 72 characters, optionally followed by a blank line and a brief body explaining why, if needed. No markdown, no backticks, no explanation, just the commit message text.'},
+        {'role': 'user', 'content': sys.argv[1]}
+    ],
+    'chat_template_kwargs': {'enable_thinking': False}
+}
+print(json.dumps(body))
+" "$diff")
+
+    local response
+    response=$(curl -s -m 30 "$DGX_ENDPOINT/chat/completions" \
+        -H "Authorization: Bearer $DGX_API_KEY" \
+        -H "Content-Type: application/json" \
+        -d "$payload")
+
+    if [ -z "$response" ]; then
+        echo "Error: no response from DGX endpoint. Check that it is reachable and try again."
+        return 1
+    fi
+
+    local message
+    message=$(printf '%s' "$response" | python3 -c "
+import json, sys
+try:
+    data = json.load(sys.stdin)
+    print(data['choices'][0]['message']['content'].strip())
+except Exception:
+    print('PARSE_ERROR', file=sys.stderr)
+    sys.exit(1)
+" 2>/dev/null)
+
+    if [ $? -ne 0 ] || [ -z "$message" ]; then
+        echo "Error: could not parse a valid response from the model."
+        echo "Raw response was:"
+        echo "$response"
+        return 1
+    fi
+
+    echo ""
+    echo "Suggested commit message:"
+    echo "-------------------------"
+    echo "$message"
+    echo "-------------------------"
+    echo ""
+    echo -n "Commit with this message? (y/n): "
+    read confirm
+    if [[ "$confirm" == "y" || "$confirm" == "Y" ]]; then
+        git commit -m "$message"
+    else
+        echo "$message" | pbcopy
+        echo "Not committed. Message copied to clipboard instead."
+    fi
+}
