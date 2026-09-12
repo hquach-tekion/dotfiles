@@ -14,12 +14,24 @@ export PATH="$HOME/.local/bin:$PATH"
 [ -f ~/.dgx_secrets ] && source ~/.dgx_secrets
 
 dgx-info() {
+    local model="${1:-$DGX_MODEL}"
+
     echo "DGX Spark Endpoint"
     echo "-------------------"
     echo "Endpoint: $DGX_ENDPOINT"
-    echo "Model:    $DGX_MODEL"
+    echo "Model:    $model"
     echo "Token:    $DGX_API_KEY"
     echo ""
     echo "Quick test:"
+    echo "curl \$DGX_ENDPOINT/chat/completions \\"
+    echo "  -H \"Authorization: Bearer \$DGX_API_KEY\" \\"
+    echo "  -H \"Content-Type: application/json\" \\"
+    echo "  -d '{\"model\": \"$model\", \"messages\": [{\"role\": \"user\", \"content\": \"Hello\"}]}'"
+    echo ""
+    echo "List all models currently loaded:"
     echo "curl \$DGX_ENDPOINT/models -H \"Authorization: Bearer \$DGX_API_KEY\""
+}
+
+dgx-models() {
+    curl -s "$DGX_ENDPOINT/models" -H "Authorization: Bearer $DGX_API_KEY" | nu --stdin -c "from json | get data | select id"
 }
