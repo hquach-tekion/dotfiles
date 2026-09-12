@@ -388,3 +388,54 @@ except Exception:
 
     return $exit_code
 }
+
+whatdoes() {
+    local query="$*"
+    if [ -z "$query" ]; then
+        echo "Usage: whatdoes <command> [flag], e.g. whatdoes tar -xvf"
+        return 1
+    fi
+
+    local payload
+    payload=$(python3 -c "
+import json, sys
+body = {
+    'model': '$DGX_MODEL',
+    'messages': [
+        {'role': 'system', 'content': 'You explain what a specific command or command flag does. Be concise, a few sentences max, focused on practical usage.'},
+        {'role': 'user', 'content': sys.argv[1]}
+    ],
+    'chat_template_kwargs': {'enable_thinking': False}
+}
+print(json.dumps(body))
+" "$query")
+
+    local response
+    response=$(curl -s -m 30 "$DGX_ENDPOINT/chat/completions" \
+        -H "Authorization: Bearer $DGX_API_KEY" \
+        -H "Content-Type: application/json" \
+        -d "$payload")
+
+    if [ -z "$response" ]; then
+        echo "Error: no response from DGX endpoint."
+        return 1
+    fi
+
+    local answer
+    answer=$(printf '%s' "$response" | python3 -c "
+import json, sys
+try:
+    data = json.load(sys.stdin)
+    print(data['choices'][0]['message']['content'].strip())
+except Exception:
+    print('PARSE_ERROR', file=sys.stderr)
+    sys.exit(1)
+" 2>/dev/null)
+
+    if [ $? -ne 0 ] || [ -z "$answer" ]; then
+        echo "Error: could not parse a valid response from the model."
+        return 1
+    fi
+
+    echo "$answer"
+}
