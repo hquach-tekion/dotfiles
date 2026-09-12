@@ -10,3 +10,16 @@ eval "$(atuin init zsh)"
 fastfetch
 export PATH="/opt/homebrew/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
+
+[ -f ~/.dgx_secrets ] && source ~/.dgx_secrets
+
+dgx-info() {
+    echo "DGX Spark Endpoint"
+    echo "-------------------"
+    echo "Endpoint: $DGX_ENDPOINT"
+    echo "Model:    $DGX_MODEL"
+    echo "Token:    $DGX_API_KEY"
+    echo ""
+    echo "Quick test:"
+    echo "curl \$DGX_ENDPOINT/models -H \"Authorization: Bearer \$DGX_API_KEY\""
+}
