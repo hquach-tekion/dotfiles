@@ -205,7 +205,30 @@ except Exception as e:
 
     echo "Fixed:"
     echo "$result"
-    echo "$result" | pbcopy
     echo ""
+    echo "Changes:"
+    python3 -c "
+import difflib, sys
+original = sys.argv[1].split()
+fixed = sys.argv[2].split()
+sm = difflib.SequenceMatcher(None, original, fixed)
+RED = chr(27) + '[31m'
+GREEN = chr(27) + '[32m'
+RESET = chr(27) + '[0m'
+out = []
+for tag, i1, i2, j1, j2 in sm.get_opcodes():
+    if tag == 'equal':
+        out.extend(fixed[j1:j2])
+    elif tag == 'replace':
+        out.append(RED + ' '.join(original[i1:i2]) + RESET)
+        out.append(GREEN + ' '.join(fixed[j1:j2]) + RESET)
+    elif tag == 'delete':
+        out.append(RED + ' '.join(original[i1:i2]) + RESET)
+    elif tag == 'insert':
+        out.append(GREEN + ' '.join(fixed[j1:j2]) + RESET)
+print(' '.join(out))
+" "$input" "$result"
+    echo ""
+    echo "$result" | pbcopy
     echo "(copied to clipboard, paste with Cmd+V)"
 }
