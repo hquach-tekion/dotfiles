@@ -229,6 +229,19 @@ for tag, i1, i2, j1, j2 in sm.get_opcodes():
 print(' '.join(out))
 " "$input" "$result"
     echo ""
+
+    python3 -c "
+import json, datetime, sys
+entry = {
+    'timestamp': datetime.datetime.now().isoformat(),
+    'tone': sys.argv[1],
+    'original': sys.argv[2],
+    'fixed': sys.argv[3]
+}
+with open('$HOME/.fixen_history.log', 'a') as f:
+    f.write(json.dumps(entry) + chr(10))
+" "$tone" "$input" "$result"
+
     echo "$result" | pbcopy
     echo "(copied to clipboard, paste with Cmd+V)"
 }
