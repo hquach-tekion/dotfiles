@@ -105,6 +105,32 @@ print(data['choices'][0]['message']['content'].strip())
 }
 
 fixen() {
+    local OPTIND opt tone="it"
+    while getopts "fce" opt; do
+        case $opt in
+            f) tone="formal" ;;
+            c) tone="casual" ;;
+            e) tone="empathetic" ;;
+        esac
+    done
+    shift $((OPTIND - 1))
+
+    local system_prompt
+    case $tone in
+        formal)
+            system_prompt="Correct the grammar and rewrite the text in a formal, polished, business-appropriate tone. Respond with ONLY the corrected version, nothing else."
+            ;;
+        casual)
+            system_prompt="Correct the grammar and rewrite the text in a relaxed, casual, friendly tone, like texting a friend. Respond with ONLY the corrected version, nothing else."
+            ;;
+        empathetic)
+            system_prompt="Rewrite the given text, keeping the exact same speaker, meaning, and intent. Correct the grammar and adjust the tone to sound calm, patient, and upbeat. Do not switch perspective, do not respond to the text or offer help as if you are someone else, and do not add new instructions or attempt to solve any problem mentioned, only rewrite what was said in a calmer and more patient way. Do not use emoji. Respond with ONLY the corrected version, nothing else."
+            ;;
+        *)
+            system_prompt="You are a helpful IT support person. Correct the grammar and rewrite the text in a concise, friendly, professional tone suitable for workplace communication. Respond with ONLY the corrected version, nothing else."
+            ;;
+    esac
+
     local input
 
     if [ -n "$1" ]; then
@@ -130,7 +156,7 @@ fixen() {
     fi
 
     echo ""
-    echo "Fixing:"
+    echo "Fixing ($tone tone):"
     echo "$input"
     echo ""
 
@@ -140,13 +166,13 @@ import json, sys
 body = {
     'model': '$DGX_MODEL',
     'messages': [
-        {'role': 'system', 'content': 'You are a helpful IT support person. Correct the grammar and rewrite the text in a concise, friendly, professional tone suitable for workplace communication. Respond with ONLY the corrected version, nothing else. No explanation, no notes, no quotation marks around it.'},
+        {'role': 'system', 'content': sys.argv[2]},
         {'role': 'user', 'content': sys.argv[1]}
     ],
     'chat_template_kwargs': {'enable_thinking': False}
 }
 print(json.dumps(body))
-" "$input")
+" "$input" "$system_prompt")
 
     local response
     response=$(curl -s -m 30 "$DGX_ENDPOINT/chat/completions" \
@@ -160,7 +186,7 @@ print(json.dumps(body))
     fi
 
     local result
-    result=$(echo "$response" | python3 -c "
+    result=$(printf '%s' "$response" | python3 -c "
 import json, sys
 try:
     data = json.load(sys.stdin)
