@@ -43,3 +43,63 @@ aider-dgx() {
 
 
 export SSL_CERT_FILE=~/.netskope-combined-ca.pem
+
+ai() {
+    local prompt="$*"
+    if [ -z "$prompt" ]; then
+        echo "Usage: ai <describe what you want to do>"
+        return 1
+    fi
+    local payload
+    payload=$(python3 -c "
+import json, sys
+body = {
+    'model': '$DGX_MODEL',
+    'messages': [
+        {'role': 'system', 'content': 'You are a shell command generator for macOS zsh. Given a description, respond with ONLY the exact shell command. No explanation. No markdown. No backticks.'},
+        {'role': 'user', 'content': sys.argv[1]}
+    ],
+    'chat_template_kwargs': {'enable_thinking': False}
+}
+print(json.dumps(body))
+" "$prompt")
+
+    curl -s "$DGX_ENDPOINT/chat/completions" \
+        -H "Authorization: Bearer $DGX_API_KEY" \
+        -H "Content-Type: application/json" \
+        -d "$payload" | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+print(data['choices'][0]['message']['content'].strip())
+"
+}
+
+explain() {
+    local cmd="$*"
+    if [ -z "$cmd" ]; then
+        echo "Usage: explain <command to explain>"
+        return 1
+    fi
+    local payload
+    payload=$(python3 -c "
+import json, sys
+body = {
+    'model': '$DGX_MODEL',
+    'messages': [
+        {'role': 'system', 'content': 'You explain shell commands in plain English. Be concise, a few sentences max. Mention any risky or destructive flags explicitly.'},
+        {'role': 'user', 'content': sys.argv[1]}
+    ],
+    'chat_template_kwargs': {'enable_thinking': False}
+}
+print(json.dumps(body))
+" "$cmd")
+
+    curl -s "$DGX_ENDPOINT/chat/completions" \
+        -H "Authorization: Bearer $DGX_API_KEY" \
+        -H "Content-Type: application/json" \
+        -d "$payload" | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+print(data['choices'][0]['message']['content'].strip())
+"
+}
