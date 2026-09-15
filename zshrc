@@ -20,7 +20,11 @@ dgx-info() {
     echo "-------------------"
     echo "Endpoint: $DGX_ENDPOINT"
     echo "Model:    $model"
-    echo "Token:    $DGX_API_KEY"
+    if [ -n "$DGX_API_KEY" ]; then
+        echo "Token:    set (ends in ...${DGX_API_KEY: -4})"
+    else
+        echo "Token:    not set"
+    fi
     echo ""
     echo "Quick test:"
     echo "curl \$DGX_ENDPOINT/chat/completions \\"
