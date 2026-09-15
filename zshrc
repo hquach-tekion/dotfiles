@@ -389,6 +389,21 @@ except Exception:
     return $exit_code
 }
 
+commands() {
+    echo "Available functions:"
+    echo ""
+    echo "  dgx-info               Show DGX Spark endpoint/model config and example curl commands"
+    echo "  dgx-models              List models currently loaded on the DGX Spark endpoint"
+    echo "  aider-dgx [args]        Run aider using the DGX Spark endpoint as its model backend"
+    echo "  ai <description>        Generate a shell command from a plain-English description"
+    echo "  explain <command>       Explain what a shell command does in plain English"
+    echo "  fixen [-f|-c|-e] [text] Rewrite text's tone (formal/casual/empathetic); uses clipboard if no text given"
+    echo "  aicommit                Generate a commit message from the staged git diff and optionally commit"
+    echo "  why <command>           Run a command and explain the failure if it exits non-zero"
+    echo "  whatdoes <cmd> [flag]   Explain what a command or flag does"
+    echo "  commands                Show this list"
+}
+
 whatdoes() {
     local query="$*"
     if [ -z "$query" ]; then
