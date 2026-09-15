@@ -2,3 +2,4 @@ test-bundle*
 .dgx_secrets
 .aider*
 .fixen_history.log
+.netskope-combined-ca.pem
