@@ -14,6 +14,14 @@ export PATH="$HOME/.local/bin:$PATH"
 [ -f ~/.dgx_secrets ] && source ~/.dgx_secrets
 
 dgx-info() {
+    local OPTIND opt full=false
+    while getopts "f" opt; do
+        case $opt in
+            f) full=true ;;
+        esac
+    done
+    shift $((OPTIND - 1))
+
     local model="${1:-$DGX_MODEL}"
 
     echo "DGX Spark Endpoint"
@@ -21,7 +29,11 @@ dgx-info() {
     echo "Endpoint: $DGX_ENDPOINT"
     echo "Model:    $model"
     if [ -n "$DGX_API_KEY" ]; then
-        echo "Token:    set (ends in ...${DGX_API_KEY: -4})"
+        if [ "$full" = true ]; then
+            echo "Token:    $DGX_API_KEY"
+        else
+            echo "Token:    set (ends in ...${DGX_API_KEY: -4})"
+        fi
     else
         echo "Token:    not set"
     fi
